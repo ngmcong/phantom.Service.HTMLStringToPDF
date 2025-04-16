@@ -1,0 +1,6 @@
+@phantom.Service.HTMLStringToPDF_HostAddress = http://localhost:5137
+
+GET {{phantom.Service.HTMLStringToPDF_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
