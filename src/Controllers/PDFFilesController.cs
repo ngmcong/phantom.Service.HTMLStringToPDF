@@ -1,7 +1,11 @@
 ﻿using System.Security.Cryptography;
+using System.Text;
 using DinkToPdf;
+using DocumentFormat.OpenXml.EMMA;
+using DocumentFormat.OpenXml.Office.SpreadSheetML.Y2023.MsForms;
 using DocumentFormat.OpenXml.Vml;
 using Microsoft.AspNetCore.Mvc;
+using phantom.Core.Restful;
 
 namespace phantom.Service.HTMLStringToPDF
 {
@@ -66,6 +70,38 @@ namespace phantom.Service.HTMLStringToPDF
         }
         private string TextOnly(string text) => string.Join("", text.Split(new char[] { '\r', '\n', ' ', '\t', '•', (char)160, (char)61623 }, StringSplitOptions.RemoveEmptyEntries));
 
+        class GeminyPart
+        {
+            public List<GeminyPartText>? parts { get; set; }
+        }
+        class GeminyPartText
+        {
+            public string? text { get; set; }
+        }
+        class GeminyReturnBody
+        {
+            public List<Candidate>? candidates { get; set; }
+            public GeminyReturnMeta? usageMetadata { get; set; }
+            public string? modelVersion { get; set; }
+        }
+        class Candidate
+        {
+            public GeminyPart? content { get; set; }
+            public string? finishReason { get; set; }
+        }
+        class GeminyReturnMeta
+        {
+            public int? promptTokenCount { get; set; }
+            public int? candidatesTokenCount { get; set; }
+            public int? totalTokenCount { get; set; }
+            public List<PromptTokensDetail>? promptTokensDetails { get; set; }
+            public List<PromptTokensDetail>? candidatesTokensDetails { get; set; }
+        }
+        class PromptTokensDetail
+        {
+            public string? modality { get; set; }
+            public int? tokenCount { get; set; }
+        }
         [HttpGet]
         public async Task<object> SignDOCXFile()
         {
@@ -94,17 +130,39 @@ namespace phantom.Service.HTMLStringToPDF
                 publicKey = RsaKeyConverter.FromXmlString(await FileToString("PublicKey.xml"));
                 privateKey = RsaKeyConverter.FromXmlString(await FileToString("PrivateKey.xml"));
             }
+
+            //string questionString = "I have a paragraph please make it better: " + originalData;
+            //RestfulHelper restfulHelper = new RestfulHelper();
+            //restfulHelper.BaseUrl = "https://generativelanguage.googleapis.com";
+            //var aiAdvicesRetVal = await restfulHelper.PostAsync<GeminyReturnBody>("v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyAm-hDGemRSA0RA0ZfeV4n3_a5OSRLYxTw"
+            //    , new
+            //    {
+            //        contents = new List<GeminyPart>
+            //        {
+            //            new GeminyPart
+            //            {
+            //                parts = new List<GeminyPartText>
+            //                {
+            //                    new GeminyPartText
+            //                    {
+            //                        text = questionString
+            //                    }
+            //                }
+            //            }
+            //        }
+            //    });
+
             originalData = TextOnly(originalData);
             var signatureString = DigitalSignature.SignData(TextOnly(originalData), privateKey);
 
             var signedFilePath = filePath.Replace(".docx", " - Copy.docx");
+            if (System.IO.File.Exists(signedFilePath)) System.IO.File.Delete(signedFilePath);
             System.IO.File.Copy(filePath, signedFilePath);
             //DocxParagraphExpander.AddNewParagraph(signedFilePath, $"Signature: {signatureString}");
 
             // You can customize font, size, and colors
             if (System.IO.File.Exists("text_image_c3_again.png")) System.IO.File.Delete("text_image_c3_again.png");
-            TextToImageDrawer.DrawImageFromText(signatureString, "text_image_c3_again.png");
-            //TextToImageDrawer.DrawImageFromText(signatureString, "text_image_c3_again.png", "Verdana", 60, System.Drawing.Color.Blue, System.Drawing.Color.Yellow);
+            TextToImageDrawer.DrawWrappedText($"Signature: {signatureString}", "text_image_c3_again.png", fontSize: 8, rectangleWidth: 500);
             DocxImageAppender.AppendImage(signedFilePath, "text_image_c3_again.png");
 
             // Ideally, get this path from configuration
@@ -112,6 +170,7 @@ namespace phantom.Service.HTMLStringToPDF
             DocxToPdfConverterLibreOffice converter = new DocxToPdfConverterLibreOffice(libreOfficePath);
             string docxFile = signedFilePath;
             string pdfFile = signedFilePath.Replace(".docx", ".pdf");
+            if (System.IO.File.Exists(pdfFile)) System.IO.File.Delete(pdfFile);
             if (System.IO.File.Exists(pdfFile) == false && converter.ConvertDocxToPdf(docxFile, pdfFile))
             {
                 Console.WriteLine($"Successfully converted '{docxFile}' to '{pdfFile}'.");
