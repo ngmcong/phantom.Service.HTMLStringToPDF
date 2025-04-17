@@ -36,5 +36,14 @@ namespace phantom.Service.HTMLStringToPDF
             string contentType = "application/pdf";
             return File(fileBytes, contentType, fileName); ;
         }
+
+        [HttpGet]
+        public async Task<string?> SignDOCXFile()
+        {
+            var filePath = "E:\\Downloads\\Permanently Keep Current OS Version using Group Policy - Copy.docx";
+            var docxToText = DocxToTextConverterWithListsRevised.ConvertDocxToText(filePath);
+            await Task.CompletedTask;
+            return docxToText;
+        }
     }
 }
