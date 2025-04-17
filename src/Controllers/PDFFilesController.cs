@@ -1,8 +1,6 @@
-﻿using System.Net.Mime;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
-using System.Security.Cryptography.Xml;
+﻿using System.Security.Cryptography;
 using DinkToPdf;
+using DocumentFormat.OpenXml.Vml;
 using Microsoft.AspNetCore.Mvc;
 
 namespace phantom.Service.HTMLStringToPDF
@@ -99,11 +97,21 @@ namespace phantom.Service.HTMLStringToPDF
             originalData = TextOnly(originalData);
             var signatureString = DigitalSignature.SignData(TextOnly(originalData), privateKey);
 
+            var signedFilePath = filePath.Replace(".docx", " - Copy.docx");
+            System.IO.File.Copy(filePath, signedFilePath);
+            //DocxParagraphExpander.AddNewParagraph(signedFilePath, $"Signature: {signatureString}");
+
+            // You can customize font, size, and colors
+            if (System.IO.File.Exists("text_image_c3_again.png")) System.IO.File.Delete("text_image_c3_again.png");
+            TextToImageDrawer.DrawImageFromText(signatureString, "text_image_c3_again.png");
+            //TextToImageDrawer.DrawImageFromText(signatureString, "text_image_c3_again.png", "Verdana", 60, System.Drawing.Color.Blue, System.Drawing.Color.Yellow);
+            DocxImageAppender.AppendImage(signedFilePath, "text_image_c3_again.png");
+
             // Ideally, get this path from configuration
             string libreOfficePath = "E:\\Downloads\\LibreOfficePortable\\App\\libreoffice\\program\\soffice.exe"; // Example path
             DocxToPdfConverterLibreOffice converter = new DocxToPdfConverterLibreOffice(libreOfficePath);
-            string docxFile = filePath;
-            string pdfFile = filePath.Replace(".docx", ".pdf");
+            string docxFile = signedFilePath;
+            string pdfFile = signedFilePath.Replace(".docx", ".pdf");
             if (System.IO.File.Exists(pdfFile) == false && converter.ConvertDocxToPdf(docxFile, pdfFile))
             {
                 Console.WriteLine($"Successfully converted '{docxFile}' to '{pdfFile}'.");
@@ -140,9 +148,11 @@ namespace phantom.Service.HTMLStringToPDF
                 return false;
             }
             var publicKey = RsaKeyConverter.FromXmlString(await FileToString("PublicKey.xml"));
-            string signatureString = "K9I8GLcIZ8GaX6VIAa6r4Siu8L+xl/L1z/8gqPhcHbz+6OxU4DclB5r3Nympp5tc8/3572QhwYnrW1lWFavVdE55aCgoAnTEmkKaYVv6kGTH6vNjLxs7Fe5sKniAm9UuVnxMoU88yOROZKiAcFri1D61cnk169/kkA5h2BqsAVdG8CL4bh6dv8eizVZvUP0bLjjUFb95epOIA7E5OjHfRrRZPMv13/6LM9oAu14oFi/cBi6OnRffNIrKi3M/awkggBbgolSjhgxXL0dw6D3fdv1Jkk0W3dg9mf4RFAaxYhyFCHvM4DISXQVUf9XPBvdiXh7oKpxT/wyRl/FSBdIevQ==";
-            var filePath = "E:\\Downloads\\Permanently Keep Current OS Version using Group Policy.docx";
-            var originalData = DocxToTextConverterWithListsRevised.ConvertDocxToText(filePath)!;
+            string signatureString = "B2twvKhDtT4Rz4TURn4DIxcDuWa1ZsvWwedERVMNZW+R1jm2/wbLh9wEtaAm02VdnNW6Gp8EEWVPyoeVfkWIoyqN002wDOzLHtvqTDXvesChlAZoJtbCEArwGHep1nJgMB7zqAfVRVW73dnnyGwcB/cDsZLE5RhrgIqcIFwuQ4QDIdF/fXTMSvSExPY9DgxFRjVLcdQW85K9muuQ1L5rnYXm/huppaCEowy9vqrfcyLrYmSTcOPbGEcWCJmgxJi+unVDbVL1NDBcYgmpMaIc5tF/EXgDt+4AKebzJgM3prVznXvv8p9iExinPPKfjQaP/1KXFD6rQB0Sw9Dyt3tFzw==";
+            var filePath = "E:\\Downloads\\Permanently Keep Current OS Version using Group Policy - Copy.pdf";
+            var originalData = PdfTextExtractor.ExtractText(filePath)!;
+            //originalData = originalData.Substring(0, originalData.IndexOf(originalData.Split('\n').First(x => x.StartsWith("Signature: "))));
+            originalData = TextOnly(originalData);
             return DigitalSignature.VerifyData(originalData, signatureString, publicKey);
         }
     }
