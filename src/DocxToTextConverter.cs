@@ -22,6 +22,11 @@ public class DocxToTextConverterWithListsRevised
                     {
                         if (element is Paragraph p)
                         {
+#if DEBUG
+                            if (p.InnerText.Contains("In Windows 11"))
+                            {
+                            }
+#endif
                             string prefix = GetListPrefix(p, numberingInstances, abstractNums
                                 , keyValuePairs);
                             text.AppendLine($"{prefix}{p.InnerText}");
@@ -63,6 +68,7 @@ public class DocxToTextConverterWithListsRevised
 
                 var lo = np.Elements<LevelOverride>().FirstOrDefault();
                 int levelIndex = lo?.LevelIndex?.Value ?? 0; // Default to level 0
+                if (levelIndex == 0) levelIndex = np.Elements<NumberingLevelReference>().FirstOrDefault()?.Val?.Value ?? 0;
 
                 var numberingInstance = numberingInstances?.FirstOrDefault(ni => ni.NumberID == numberingId);
                 var abstractNum = abstractNums?.FirstOrDefault(nd => nd.AbstractNumberId?.Value == numberingInstance?.AbstractNumId?.Val?.Value); // Corrected property name

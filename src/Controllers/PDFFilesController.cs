@@ -66,6 +66,7 @@ namespace phantom.Service.HTMLStringToPDF
             }
             return fileContent;
         }
+        private string TextOnly(string text) => string.Join("", text.Split(new char[] { '\r', '\n', ' ', '\t', '•', (char)160, (char)61623 }, StringSplitOptions.RemoveEmptyEntries));
 
         [HttpGet]
         public async Task<object> SignDOCXFile()
@@ -95,21 +96,33 @@ namespace phantom.Service.HTMLStringToPDF
                 publicKey = RsaKeyConverter.FromXmlString(await FileToString("PublicKey.xml"));
                 privateKey = RsaKeyConverter.FromXmlString(await FileToString("PrivateKey.xml"));
             }
-            var signatureString = DigitalSignature.SignData(originalData, privateKey);
-
+            originalData = TextOnly(originalData);
+            var signatureString = DigitalSignature.SignData(TextOnly(originalData), privateKey);
 
             // Ideally, get this path from configuration
             string libreOfficePath = "E:\\Downloads\\LibreOfficePortable\\App\\libreoffice\\program\\soffice.exe"; // Example path
             DocxToPdfConverterLibreOffice converter = new DocxToPdfConverterLibreOffice(libreOfficePath);
             string docxFile = filePath;
             string pdfFile = filePath.Replace(".docx", ".pdf");
-            if (converter.ConvertDocxToPdf(docxFile, pdfFile))
+            if (System.IO.File.Exists(pdfFile) == false && converter.ConvertDocxToPdf(docxFile, pdfFile))
             {
                 Console.WriteLine($"Successfully converted '{docxFile}' to '{pdfFile}'.");
             }
             else
             {
                 Console.WriteLine($"Conversion failed.");
+            }
+
+            var extractedText = PdfTextExtractor.ExtractText(pdfFile);
+            extractedText = TextOnly(extractedText!);
+
+            if (!string.IsNullOrEmpty(extractedText))
+            {
+                Console.WriteLine("Extracted Text:\n" + extractedText + $" [{DigitalSignature.VerifyData(extractedText, signatureString, publicKey)}]");
+            }
+            else
+            {
+                Console.WriteLine("No text extracted or an error occurred.");
             }
 
             return new
@@ -128,7 +141,7 @@ namespace phantom.Service.HTMLStringToPDF
             }
             var publicKey = RsaKeyConverter.FromXmlString(await FileToString("PublicKey.xml"));
             string signatureString = "K9I8GLcIZ8GaX6VIAa6r4Siu8L+xl/L1z/8gqPhcHbz+6OxU4DclB5r3Nympp5tc8/3572QhwYnrW1lWFavVdE55aCgoAnTEmkKaYVv6kGTH6vNjLxs7Fe5sKniAm9UuVnxMoU88yOROZKiAcFri1D61cnk169/kkA5h2BqsAVdG8CL4bh6dv8eizVZvUP0bLjjUFb95epOIA7E5OjHfRrRZPMv13/6LM9oAu14oFi/cBi6OnRffNIrKi3M/awkggBbgolSjhgxXL0dw6D3fdv1Jkk0W3dg9mf4RFAaxYhyFCHvM4DISXQVUf9XPBvdiXh7oKpxT/wyRl/FSBdIevQ==";
-            var filePath = "E:\\Downloads\\Permanently Keep Current OS Version using Group Policy - Copy.docx";
+            var filePath = "E:\\Downloads\\Permanently Keep Current OS Version using Group Policy.docx";
             var originalData = DocxToTextConverterWithListsRevised.ConvertDocxToText(filePath)!;
             return DigitalSignature.VerifyData(originalData, signatureString, publicKey);
         }
