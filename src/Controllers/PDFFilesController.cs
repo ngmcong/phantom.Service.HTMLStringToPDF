@@ -71,7 +71,7 @@ namespace phantom.Service.HTMLStringToPDF
         [HttpGet]
         public async Task<object> SignDOCXFile()
         {
-            var filePath = "E:\\Downloads\\Permanently Keep Current OS Version using Group Policy - Copy.docx";
+            var filePath = "E:\\Downloads\\Permanently Keep Current OS Version using Group Policy.docx";
             var originalData = DocxToTextConverterWithListsRevised.ConvertDocxToText(filePath)!;
             RSAParameters publicKey;
             RSAParameters privateKey;

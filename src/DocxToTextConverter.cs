@@ -4,6 +4,20 @@ using System.Text;
 
 public class DocxToTextConverterWithListsRevised
 {
+    internal class NumbericKeyValue
+    {
+        public int? LevelIndex { get; set; }
+        public string? NumberId { get; set; }
+        public override bool Equals(object? obj)
+        {
+            if (obj is NumbericKeyValue p) return NumberId == p?.NumberId && LevelIndex == p?.LevelIndex;
+            return false;
+        }
+        public override int GetHashCode()
+        {
+            return $"{LevelIndex}.{NumberId}".GetHashCode();
+        }
+    }
     public static string? ConvertDocxToText(string filePath)
     {
         StringBuilder text = new StringBuilder();
@@ -17,16 +31,11 @@ public class DocxToTextConverterWithListsRevised
                     var numberingPart = doc.MainDocumentPart.NumberingDefinitionsPart;
                     var numberingInstances = numberingPart?.Numbering?.Elements<NumberingInstance>();
                     var abstractNums = numberingPart?.Numbering?.Elements<AbstractNum>();
-                    Dictionary<string, int> keyValuePairs = new Dictionary<string, int>();
+                    Dictionary<NumbericKeyValue, int> keyValuePairs = new Dictionary<NumbericKeyValue, int>();
                     foreach (var element in doc.MainDocumentPart.Document.Body!.Elements())
                     {
                         if (element is Paragraph p)
                         {
-#if DEBUG
-                            if (p.InnerText.Contains("In Windows 11"))
-                            {
-                            }
-#endif
                             string prefix = GetListPrefix(p, numberingInstances, abstractNums
                                 , keyValuePairs);
                             text.AppendLine($"{prefix}{p.InnerText}");
@@ -56,7 +65,7 @@ public class DocxToTextConverterWithListsRevised
         return text.ToString();
     }
     private static string GetListPrefix(Paragraph p, IEnumerable<NumberingInstance>? numberingInstances, IEnumerable<AbstractNum>? abstractNums
-        , Dictionary<string, int> keyValuePairs)
+        , Dictionary<NumbericKeyValue, int> keyValuePairs)
     {
         var pp = p.Elements<ParagraphProperties>().FirstOrDefault();
         if (pp != null)
@@ -84,8 +93,13 @@ public class DocxToTextConverterWithListsRevised
                         // Logic to determine the current list item number (simplified)
                         // This part might need more sophisticated handling for complex lists
                         int levelValue = 1; // Default to 1, you might need to track this
-                        if (keyValuePairs.ContainsKey(numberingId!) == false) keyValuePairs.Add(numberingId!, 1);
-                        else levelValue = ++keyValuePairs[numberingId!];
+                        var numbericKeyValue = new NumbericKeyValue
+                        {
+                            NumberId = numberingId,
+                            LevelIndex = levelIndex,
+                        };
+                        if (keyValuePairs.ContainsKey(numbericKeyValue) == false) keyValuePairs.Add(numbericKeyValue, 1);
+                        else levelValue = ++keyValuePairs[numbericKeyValue];
                         var formatString = suffix!.Replace("%1", "{0}") + "\t";
                         switch (format)
                         {
