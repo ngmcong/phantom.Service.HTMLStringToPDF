@@ -1,9 +1,5 @@
 ﻿using System.Security.Cryptography;
-using System.Text;
 using DinkToPdf;
-using DocumentFormat.OpenXml.EMMA;
-using DocumentFormat.OpenXml.Office.SpreadSheetML.Y2023.MsForms;
-using DocumentFormat.OpenXml.Vml;
 using Microsoft.AspNetCore.Mvc;
 using phantom.Core.Restful;
 
@@ -13,6 +9,12 @@ namespace phantom.Service.HTMLStringToPDF
     [ApiController]
     public class PDFFilesController : ControllerBase
     {
+        private readonly IConfiguration _configuration;
+        public PDFFilesController(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
         [HttpPost]
         public async Task<IActionResult> ConvertFromString([FromBody] string htmlString)
         {
@@ -131,26 +133,28 @@ namespace phantom.Service.HTMLStringToPDF
                 privateKey = RsaKeyConverter.FromXmlString(await FileToString("PrivateKey.xml"));
             }
 
-            //string questionString = "I have a paragraph please make it better: " + originalData;
-            //RestfulHelper restfulHelper = new RestfulHelper();
-            //restfulHelper.BaseUrl = "https://generativelanguage.googleapis.com";
-            //var aiAdvicesRetVal = await restfulHelper.PostAsync<GeminyReturnBody>("v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyAm-hDGemRSA0RA0ZfeV4n3_a5OSRLYxTw"
-            //    , new
-            //    {
-            //        contents = new List<GeminyPart>
-            //        {
-            //            new GeminyPart
-            //            {
-            //                parts = new List<GeminyPartText>
-            //                {
-            //                    new GeminyPartText
-            //                    {
-            //                        text = questionString
-            //                    }
-            //                }
-            //            }
-            //        }
-            //    });
+            var germinyKey = _configuration.GetSection("Keys")["GerminyKey"];
+
+            string questionString = "Does you have any advices to make this paragraph better: " + originalData;
+            RestfulHelper restfulHelper = new RestfulHelper();
+            restfulHelper.BaseUrl = "https://generativelanguage.googleapis.com";
+            var germinyBody = new
+            {
+                contents = new List<GeminyPart>
+                {
+                    new GeminyPart
+                    {
+                        parts = new List<GeminyPartText>
+                        {
+                            new GeminyPartText
+                            {
+                                text = questionString
+                            }
+                        }
+                    }
+                }
+            };
+            var aiAdvicesRetVal = await restfulHelper.PostAsync<GeminyReturnBody>($"v1beta/models/gemini-1.5-flash:generateContent?key={germinyKey}", germinyBody);
 
             originalData = TextOnly(originalData);
             var signatureString = DigitalSignature.SignData(TextOnly(originalData), privateKey);
