@@ -80,7 +80,7 @@ public class DocxToTextConverterWithListsRevised
                         int levelValue = 1; // Default to 1, you might need to track this
                         if (keyValuePairs.ContainsKey(numberingId!) == false) keyValuePairs.Add(numberingId!, 1);
                         else levelValue = ++keyValuePairs[numberingId!];
-
+                        var formatString = suffix!.Replace("%1", "{0}") + "\t";
                         switch (format)
                         {
                             case "bullet":
@@ -88,15 +88,15 @@ public class DocxToTextConverterWithListsRevised
                             case "decimal":
                                 return $"{levelValue}.\t";
                             case "lowerLetter":
-                                return string.Format(suffix!.Replace("%1", "{0}") + "\t", (char)('a' + (levelValue - 1)));
+                                return string.Format(formatString, (char)('a' + (levelValue - 1)));
                             case "upperLetter":
-                                return $"{(char)('A' + (levelValue - 1))}.\t";
+                                return string.Format(formatString, (char)('A' + (levelValue - 1)));
                             case "lowerRoman":
                                 string[] romanLower = { "", "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x" };
-                                return (levelValue <= 10) ? $"{romanLower[levelValue]}.\t" : $"{levelValue}. ";
+                                return (levelValue <= 10) ? string.Format(formatString, romanLower[levelValue]) : $"{levelValue}. ";
                             case "upperRoman":
                                 string[] romanUpper = { "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X" };
-                                return (levelValue <= 10) ? $"{romanUpper[levelValue]}.\t" : $"{levelValue}. ";
+                                return (levelValue <= 10) ? string.Format(formatString, romanUpper[levelValue]) : $"{levelValue}. ";
                             default:
                                 return "";
                         }
