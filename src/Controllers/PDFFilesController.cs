@@ -96,6 +96,22 @@ namespace phantom.Service.HTMLStringToPDF
                 privateKey = RsaKeyConverter.FromXmlString(await FileToString("PrivateKey.xml"));
             }
             var signatureString = DigitalSignature.SignData(originalData, privateKey);
+
+
+            // Ideally, get this path from configuration
+            string libreOfficePath = "E:\\Downloads\\LibreOfficePortable\\App\\libreoffice\\program\\soffice.exe"; // Example path
+            DocxToPdfConverterLibreOffice converter = new DocxToPdfConverterLibreOffice(libreOfficePath);
+            string docxFile = filePath;
+            string pdfFile = filePath.Replace(".docx", ".pdf");
+            if (converter.ConvertDocxToPdf(docxFile, pdfFile))
+            {
+                Console.WriteLine($"Successfully converted '{docxFile}' to '{pdfFile}'.");
+            }
+            else
+            {
+                Console.WriteLine($"Conversion failed.");
+            }
+
             return new
             {
                 Content = originalData,
